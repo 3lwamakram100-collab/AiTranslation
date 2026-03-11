@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Translate with Ali — Base Blockchain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Tajawal:wght@300;400;500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+<style>
+:root{
+  --navy:#060b28;--mid:#0f1f7a;--bright:#1a3cdc;
+  --glow:#3b6bff;--sky:#6b9fff;--gold:#f5c842;--gold-lt:#ffe87c;
+  --gold-dk:#c49a0a;--white:#eef3ff;--muted:rgba(238,243,255,.48);
+  --glass:rgba(255,255,255,.04);--gb:rgba(245,200,66,.22);
+  --ease:.32s cubic-bezier(.4,0,.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--white);min-height:100vh;overflow-x:hidden}
+
+/* ── BACKGROUND ── */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+#bg::before{
+  content:'';position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 5%,rgba(26,60,220,.38) 0%,transparent 60%),
+    radial-gradient(ellipse 50% 40% at 85% 85%,rgba(245,200,66,.1) 0%,transparent 60%),
+    radial-gradient(ellipse 80% 60% at 50% 50%,rgba(9,16,64,.95) 0%,transparent 80%);
+  animation:pBg 9s ease-in-out infinite alternate;
+}
+@keyframes pBg{0%{opacity:.85;transform:scale(1)}100%{opacity:1;transform:scale(1.04)}}
+.orb{position:absolute;border-radius:50%;filter:blur(60px);animation:fOrb var(--d,14s) ease-in-out infinite alternate;opacity:.2}
+.orb1{width:500px;height:500px;background:radial-gradient(var(--bright),transparent 70%);top:-150px;left:-150px;--d:11s}
+.orb2{width:350px;height:350px;background:radial-gradient(var(--gold-dk),transparent 70%);bottom:-100px;right:-80px;--d:15s}
+.orb3{width:280px;height:280px;background:radial-gradient(var(--glow),transparent 70%);top:40%;right:20%;--d:9s}
+@keyframes fOrb{0%{transform:translate(0,0)}100%{transform:translate(40px,30px)}}
+.star{position:absolute;border-radius:50%;background:var(--gold-lt);animation:twk var(--t,3s) var(--dd,0s) ease-in-out infinite alternate}
+@keyframes twk{0%{opacity:.08;transform:scale(.7)}100%{opacity:.8;transform:scale(1.3)}}
+#bg::after{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(59,107,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(59,107,255,.05) 1px,transparent 1px);
+  background-size:60px 60px;
+}
+
+/* ── LAYOUT ── */
+.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:0 20px 80px}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:28px 0 10px;gap:16px;flex-wrap:wrap}
+.brand-mark{display:flex;align-items:center;gap:14px}
+.logo-hex{
+  width:50px;height:50px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--bright),var(--gold));
+  clip-path:polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+  display:flex;align-items:center;justify-content:center;font-size:1.3rem;
+  animation:gp 3s ease-in-out infinite alternate;
+}
+@keyframes gp{0%{box-shadow:0 0 20px rgba(59,107,255,.4)}100%{box-shadow:0 0 40px rgba(245,200,66,.5)}}
+.brand-main{
+  font-family:'Cinzel Decorative',serif;font-size:1.3rem;font-weight:900;
+  background:linear-gradient(90deg,var(--gold-lt),var(--gold),var(--sky));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  line-height:1;white-space:nowrap;
+}
+.brand-sub{font-size:.68rem;color:var(--muted);letter-spacing:.15em;text-transform:uppercase;margin-top:3px}
+#connect-btn{
+  display:flex;align-items:center;gap:9px;
+  background:linear-gradient(135deg,var(--mid),var(--bright));
+  border:1.5px solid var(--gb);color:var(--white);
+  font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:500;
+  padding:10px 22px;border-radius:50px;cursor:pointer;
+  transition:var(--ease);box-shadow:0 0 22px rgba(26,60,220,.4);white-space:nowrap;
+}
+#connect-btn:hover{transform:translateY(-2px);box-shadow:0 0 36px rgba(59,107,255,.65)}
+#connect-btn.ok{background:linear-gradient(135deg,#0c3d1a,#1a6e30);border-color:rgba(80,200,100,.4)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 7px var(--gold);flex-shrink:0}
+.dot.on{background:#52d46a;box-shadow:0 0 7px #52d46a}
+#net-badge{font-size:.67rem;color:var(--muted);letter-spacing:.09em;text-align:right;margin-top:3px;min-height:16px}
+
+/* ── HERO ── */
+.hero{text-align:center;margin:36px 0 14px}
+.hero h1{font-family:'Cinzel Decorative',serif;font-size:clamp(2.2rem,6.5vw,4.2rem);font-weight:900;line-height:1.1}
+.hw-t{
+  background:linear-gradient(90deg,var(--gold-lt) 0%,var(--gold) 50%,#ff9800 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  position:relative;display:inline-block;
+}
+.hw-t::after{content:'';position:absolute;bottom:-5px;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold-lt),var(--gold));border-radius:4px;box-shadow:0 0 14px var(--gold)}
+.hw-a{background:linear-gradient(90deg,var(--sky),var(--glow),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{margin-top:14px;color:var(--muted);font-size:.9rem;font-weight:300;letter-spacing:.07em;display:flex;align-items:center;justify-content:center;gap:10px}
+.hero-sub::before,.hero-sub::after{content:'';width:50px;height:1px;background:linear-gradient(90deg,transparent,var(--gold-dk))}
+.hero-sub::after{background:linear-gradient(90deg,var(--gold-dk),transparent)}
+.ar-deco{font-family:'Tajawal',sans-serif;font-size:clamp(1rem,3vw,1.5rem);color:var(--gold);opacity:.28;text-align:center;letter-spacing:.06em;margin:12px 0 34px}
+
+/* ── CARD ── */
+.card{
+  background:var(--glass);backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+  border:1.5px solid var(--gb);border-radius:28px;padding:36px 40px;
+  box-shadow:0 0 70px rgba(26,60,220,.18),inset 0 1px 0 rgba(255,255,255,.07);
+  position:relative;overflow:hidden;
+}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),var(--sky),var(--gold),transparent);animation:sh 4s linear infinite}
+@keyframes sh{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+
+/* ── DIRECTION ── */
+.dir-row{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:26px;flex-wrap:wrap}
+.lang-pill{font-size:.78rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:7px 22px;border-radius:50px;border:1.5px solid var(--gb);background:rgba(245,200,66,.07);color:var(--gold);cursor:pointer;transition:var(--ease)}
+.lang-pill.active{background:rgba(245,200,66,.2);border-color:var(--gold);box-shadow:0 0 14px rgba(245,200,66,.28)}
+.swap-btn{width:46px;height:46px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--bright),var(--glow));border:2px solid var(--gb);color:var(--white);font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--ease);box-shadow:0 0 22px rgba(59,107,255,.4)}
+.swap-btn:hover{transform:rotate(180deg) scale(1.12);box-shadow:0 0 38px rgba(59,107,255,.75)}
+
+/* ── PANELS ── */
+.panels{display:grid;grid-template-columns:1fr 2px 1fr;gap:22px;margin-bottom:26px;align-items:start}
+.panel-label{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.panel-label span{opacity:.55;font-weight:300;text-transform:none;letter-spacing:0;font-size:.8rem}
+textarea{width:100%;background:rgba(6,11,40,.75);border:1.5px solid rgba(245,200,66,.18);border-radius:14px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:1rem;padding:16px;resize:none;outline:none;line-height:1.75;min-height:200px;transition:var(--ease)}
+textarea::placeholder{color:var(--muted)}
+textarea:focus{border-color:var(--glow);box-shadow:0 0 0 3px rgba(59,107,255,.13),0 0 22px rgba(59,107,255,.17)}
+.out-box{width:100%;background:rgba(6,11,40,.88);border:1.5px solid rgba(107,159,255,.2);border-radius:14px;color:var(--white);font-size:1rem;padding:16px;line-height:1.75;min-height:200px;word-break:break-word;white-space:pre-wrap}
+.out-box.rtl{direction:rtl;text-align:right;font-family:'Tajawal',sans-serif;font-size:1.1rem}
+.out-box.ltr{direction:ltr;text-align:left;font-family:'DM Sans',sans-serif}
+.out-placeholder{color:rgba(238,243,255,.3);font-family:'DM Sans',sans-serif;font-size:1rem;direction:ltr}
+.out-wrap{position:relative}
+.copy-btn{position:absolute;bottom:10px;right:10px;background:rgba(245,200,66,.1);border:1px solid rgba(245,200,66,.22);border-radius:8px;color:var(--gold);font-size:.67rem;padding:4px 11px;cursor:pointer;opacity:0;transition:opacity .2s;font-family:'DM Sans',sans-serif}
+.out-wrap:hover .copy-btn,.copy-btn.show{opacity:1}
+.copy-btn:hover{background:rgba(245,200,66,.26)}
+.divline{background:linear-gradient(180deg,transparent,var(--gb),transparent);border:none;border-radius:4px}
+.meta-row{display:flex;justify-content:space-between;align-items:center;margin-top:5px}
+.char-ct{font-size:.67rem;color:var(--muted);letter-spacing:.05em}
+.char-ct.warn{color:var(--gold)}
+.eng-badge{font-size:.64rem;color:var(--sky);letter-spacing:.07em;opacity:.8;display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.eng-badge::before{content:'✦';color:var(--gold)}
+
+/* ── BUTTON ── */
+#tx-btn{
+  width:100%;padding:18px;
+  background:linear-gradient(135deg,var(--mid) 0%,var(--bright) 50%,#2050ff 100%);
+  background-size:200% 100%;background-position:0%;
+  border:none;border-radius:14px;color:var(--white);
+  font-family:'Cinzel Decorative',serif;font-size:1.05rem;font-weight:700;letter-spacing:.1em;
+  cursor:pointer;transition:var(--ease);box-shadow:0 4px 32px rgba(26,60,220,.45);
+  position:relative;overflow:hidden;
+}
+#tx-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(245,200,66,.12),transparent);transform:translateX(-100%);transition:transform .5s ease}
+#tx-btn:hover:not(:disabled){background-position:100%;transform:translateY(-2px);box-shadow:0 8px 48px rgba(59,107,255,.6)}
+#tx-btn:hover::after{transform:translateX(100%)}
+#tx-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+#tx-btn.busy{background:linear-gradient(135deg,#070f3a,var(--mid))}
+
+/* ── STATUS ── */
+#status{margin-top:18px;min-height:48px;display:flex;align-items:center;gap:11px;padding:12px 18px;border-radius:14px;font-size:.86rem;border:1.5px solid transparent;transition:var(--ease);opacity:0}
+#status.show{opacity:1}
+#status.info{background:rgba(26,60,220,.2);border-color:rgba(59,107,255,.3);color:var(--sky)}
+#status.ok{background:rgba(50,180,80,.12);border-color:rgba(80,200,100,.35);color:#80e898}
+#status.err{background:rgba(220,50,60,.12);border-color:rgba(220,80,90,.35);color:#ff8a8a}
+#status.warn{background:rgba(245,200,66,.1);border-color:rgba(245,200,66,.3);color:var(--gold)}
+.s-ico{font-size:1.1rem;flex-shrink:0}
+.tx-lnk{color:var(--gold);text-decoration:none;font-weight:600;margin-left:4px;border-bottom:1px dashed var(--gold-dk)}
+.tx-lnk:hover{color:var(--gold-lt)}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
+.sbox{background:rgba(13,31,122,.35);border:1px solid var(--gb);border-radius:14px;padding:16px;text-align:center}
+.sv{font-family:'Cinzel Decorative',serif;font-size:1.5rem;color:var(--gold);font-weight:700;line-height:1;margin-bottom:4px}
+.sl{font-size:.66rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+
+/* ── HISTORY ── */
+.hist-sec{margin-top:34px}
+.sec-hd{font-family:'Cinzel Decorative',serif;font-size:.85rem;color:var(--gold);letter-spacing:.12em;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.sec-hd::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--gold-dk),transparent)}
+#hist{display:flex;flex-direction:column;gap:10px;max-height:340px;overflow-y:auto;padding-right:4px}
+#hist::-webkit-scrollbar{width:3px}
+#hist::-webkit-scrollbar-thumb{background:var(--mid);border-radius:4px}
+.hi{background:var(--glass);border:1px solid rgba(245,200,66,.1);border-radius:12px;padding:12px 16px;display:flex;align-items:flex-start;gap:12px;animation:si .35s ease}
+@keyframes si{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.hi-dir{font-size:.62rem;background:rgba(59,107,255,.18);border:1px solid rgba(59,107,255,.3);border-radius:50px;padding:3px 10px;color:var(--sky);letter-spacing:.09em;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.hi-words{flex:1;min-width:0}
+.hi-src{font-weight:600;color:var(--white);font-size:.87rem;margin-bottom:3px;word-break:break-word}
+.hi-tgt{font-family:'Tajawal','DM Sans',sans-serif;color:var(--gold-lt);font-size:.9rem;word-break:break-word}
+.hi-tx{font-size:.66rem;color:var(--muted);flex-shrink:0;white-space:nowrap;margin-top:2px}
+
+/* ── FOOTER ── */
+footer{margin-top:50px;text-align:center;font-size:.7rem;color:var(--muted);letter-spacing:.07em}
+footer a{color:var(--gold-dk);text-decoration:none}
+footer a:hover{color:var(--gold)}
+
+/* ── SPINNER ── */
+.spin{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.18);border-top-color:var(--gold);border-radius:50%;animation:rot .7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* ── STREAMING CURSOR ── */
+.cursor{display:inline-block;width:2px;height:1.1em;background:var(--gold);margin-left:2px;animation:blink .7s ease-in-out infinite;vertical-align:text-bottom}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:680px){
+  .card{padding:22px 16px}
+  .panels{grid-template-columns:1fr;gap:14px}
+  .divline{width:100%;height:1.5px;background:linear-gradient(90deg,transparent,var(--gb),transparent)}
+  header{flex-direction:column;align-items:stretch}
+  #net-badge{text-align:center}
+}
+</style>
+</head>
+<body>
+
+<div id="bg">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div id="sc"></div>
+</div>
+
+<div class="wrap">
+  <!-- Header -->
+  <header>
+    <div class="brand-mark">
+      <div class="logo-hex">✦</div>
+      <div>
+        <div class="brand-main">Translate with Ali</div>
+        <div class="brand-sub">Powered by Base Blockchain</div>
+      </div>
+    </div>
+    <div>
+      <button id="connect-btn"><span class="dot" id="wdot"></span><span id="wlabel">Connect Wallet</span></button>
+      <div id="net-badge"></div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1><span class="hw-t">Translate</span><br/><span class="hw-a">with Ali</span></h1>
+    <p class="hero-sub">English · Arabic · On-Chain</p>
+  </div>
+  <div class="ar-deco">ترجمة مع علي · كلمات · جمل · مقالات · على بلوكشين بيس</div>
+
+  <!-- Card -->
+  <div class="card">
+    <div class="dir-row">
+      <span class="lang-pill active" id="pill-from">🇬🇧 English</span>
+      <button class="swap-btn" id="swap-btn" title="Swap">⇄</button>
+      <span class="lang-pill" id="pill-to">🇸🇦 Arabic</span>
+    </div>
+
+    <div class="panels">
+      <!-- INPUT -->
+      <div>
+        <div class="panel-label" id="in-lbl">Enter text <span>word · sentence · full article</span></div>
+        <textarea id="inp" placeholder="Type anything — a word, sentence, paragraph or full article…" rows="8" oninput="onInp()"></textarea>
+        <div class="meta-row">
+          <span class="char-ct" id="cc">0 / 5000</span>
+          <span style="font-size:.68rem;color:var(--muted)">Ctrl+Enter to translate</span>
+        </div>
+      </div>
+      <!-- DIVIDER -->
+      <div class="divline"></div>
+      <!-- OUTPUT -->
+      <div>
+        <div class="eng-badge">Powered by Claude AI · Any word · Any sentence · Any article</div>
+        <div class="panel-label" id="out-lbl">Arabic translation</div>
+        <div class="out-wrap">
+          <div id="out-box" class="out-box rtl"><span class="out-placeholder">Translation appears here…</span></div>
+          <button class="copy-btn" id="copy-btn" onclick="doCopy()">⎘ Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="tx-btn" onclick="doTranslate()">✦ Translate &amp; Record on Base</button>
+    <div id="status"><span class="s-ico" id="s-ico"></span><span id="s-txt"></span></div>
+
+    <div class="stats">
+      <div class="sbox"><div class="sv" id="st-tot">—</div><div class="sl">Total On-Chain</div></div>
+      <div class="sbox"><div class="sv" id="st-sess">0</div><div class="sl">This Session</div></div>
+      <div class="sbox"><div class="sv">Base</div><div class="sl">Network</div></div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="hist-sec">
+    <div class="sec-hd">Translation History</div>
+    <div id="hist"><div style="color:var(--muted);font-size:.85rem;text-align:center;padding:24px">Connect wallet to see on-chain history</div></div>
+  </div>
+
+  <footer>
+    Translate with Ali &nbsp;·&nbsp; Base Blockchain &nbsp;·&nbsp;
+    Contract: <a href="#" id="c-lnk" target="_blank">view on Basescan</a>
+    &nbsp;·&nbsp; Translation by Claude AI
+  </footer>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONFIG — only edit CONTRACT_ADDRESS after deploying
+   ════════════════════════════════════════════════════════════ */
+const CONTRACT_ADDRESS = "YOUR_CONTRACT_ADDRESS_HERE";
+const CHAIN  = 8453;
+const SCAN   = "https://basescan.org";
+const ABI = [
+  "function logTranslation(string,string,string) external returns (uint256)",
+  "function getTotalTranslations() external view returns (uint256)",
+  "function getTranslation(uint256) external view returns (tuple(address user,string sourceWord,string translatedWord,string direction,uint256 timestamp))",
+  "function getUserTranslationIds(address) external view returns (uint256[])",
+];
+
+/* ════════════════════════════════════════════════════════════
+   TRANSLATION ENGINE — Anthropic Claude API
+   Works from ANY location: file://, localhost, any server
+   No CORS issues. No API key needed in this environment.
+   ════════════════════════════════════════════════════════════ */
+async function claudeTranslate(text, direction) {
+  const isEnToAr = direction === "en->ar";
+  const systemPrompt = isEnToAr
+    ? `You are a professional English to Arabic translator. 
+       Translate the given text accurately and naturally.
+       - Preserve the meaning, tone, and style of the original
+       - For single words: give the most common/natural Arabic equivalent
+       - For sentences/paragraphs: translate naturally as a native Arabic speaker would write
+       - Return ONLY the Arabic translation, nothing else — no explanations, no notes, no transliteration`
+    : `You are a professional Arabic to English translator.
+       Translate the given text accurately and naturally.
+       - Preserve the meaning, tone, and style of the original  
+       - For single words: give the most common/natural English equivalent
+       - For sentences/paragraphs: translate naturally as a native English speaker would write
+       - Return ONLY the English translation, nothing else — no explanations, no notes`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 2000,
+      system: systemPrompt,
+      messages: [{ role: "user", content: text }]
+    })
+  });
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `API error ${response.status}`);
+  }
+
+  const data = await response.json();
+  const result = data.content?.find(b => b.type === "text")?.text?.trim();
+  if (!result) throw new Error("Empty response from translation engine");
+  return result;
+}
+
+/* ════════════════════════════════════════════════════════════
+   STATE
+   ════════════════════════════════════════════════════════════ */
+let provider, signer, contract;
+let dir = "en->ar", sess = 0, connected = false;
+let hist = [], lastResult = "";
+
+/* ── Stars ── */
+(function(){
+  const c = document.getElementById('sc');
+  for(let i=0;i<90;i++){
+    const s=document.createElement('div');s.className='star';
+    s.style.cssText=`left:${Math.random()*100}%;top:${Math.random()*100}%;
+      --t:${2+Math.random()*5}s;--dd:${Math.random()*5}s;
+      width:${1+Math.random()*2.5}px;height:${1+Math.random()*2.5}px;`;
+    c.appendChild(s);
+  }
+})();
+
+/* ── DOM Helpers ── */
+const $ = id => document.getElementById(id);
+
+function setStatus(type, icon, html) {
+  const s=$('status'); s.className='show '+type;
+  $('s-ico').textContent=icon; $('s-txt').innerHTML=html;
+}
+function clearSt(){ $('status').className=''; }
+
+function setOut(text, isAr) {
+  const el=$('out-box');
+  el.textContent = text;
+  el.className = 'out-box ' + (isAr ? 'rtl' : 'ltr');
+  lastResult = text;
+  $('copy-btn').classList.add('show');
+}
+
+function clearOut() {
+  const el=$('out-box');
+  el.innerHTML='<span class="out-placeholder">Translation appears here…</span>';
+  el.className = 'out-box ' + (dir==='en->ar' ? 'rtl' : 'ltr');
+  lastResult = '';
+  $('copy-btn').classList.remove('show');
+}
+
+// Stream text character by character into the output box
+function streamOut(text, isAr) {
+  const el=$('out-box');
+  el.textContent='';
+  el.className='out-box '+(isAr?'rtl':'ltr');
+  // Add blinking cursor
+  const cursor=document.createElement('span');
+  cursor.className='cursor';
+  el.appendChild(cursor);
+  lastResult=text;
+  let i=0;
+  const step=()=>{
+    if(i<text.length){
+      el.insertBefore(document.createTextNode(text[i]),cursor);
+      i++;
+      // Vary speed: fast for words, slight pause at punctuation
+      const delay=/[.!?،؟\n]/.test(text[i-1])?60:12;
+      setTimeout(step,delay);
+    } else {
+      cursor.remove();
+      $('copy-btn').classList.add('show');
+    }
+  };
+  step();
+}
+
+function doCopy() {
+  if(!lastResult) return;
+  navigator.clipboard.writeText(lastResult).then(()=>{
+    $('copy-btn').textContent='✓ Copied!';
+    setTimeout(()=>$('copy-btn').textContent='⎘ Copy',1600);
+  });
+}
+
+function short(a){ return a.slice(0,6)+'…'+a.slice(-4); }
+
+function onInp() {
+  const v=$('inp').value, n=v.length;
+  const cc=$('cc');
+  cc.textContent=n+' / 5000';
+  cc.className='char-ct'+(n>4500?' warn':'');
+  if(v.trim()){
+    const ar=/[\u0600-\u06FF]/.test(v);
+    if(ar&&dir!=='ar->en') setDir('ar->en',true);
+    else if(!ar&&dir!=='en->ar') setDir('en->ar',true);
+  }
+}
+
+/* ── Direction ── */
+function setDir(d, keepInput=false) {
+  dir=d;
+  const e2a=d==='en->ar';
+  $('pill-from').textContent=e2a?'🇬🇧 English':'🇸🇦 Arabic';
+  $('pill-to').textContent=e2a?'🇸🇦 Arabic':'🇬🇧 English';
+  $('pill-from').className='lang-pill active';
+  $('pill-to').className='lang-pill';
+  $('in-lbl').innerHTML=e2a
+    ?'Enter text <span>word · sentence · full article</span>'
+    :'أدخل النص <span>كلمة · جملة · مقال كامل</span>';
+  $('out-lbl').textContent=e2a?'Arabic translation':'English translation';
+  $('inp').dir=e2a?'ltr':'rtl';
+  $('inp').placeholder=e2a
+    ?'Type anything — a word, sentence, paragraph or full article…'
+    :'اكتب أي شيء — كلمة أو جملة أو مقال كامل…';
+  if(!keepInput){ $('inp').value=''; $('cc').textContent='0 / 5000'; }
+  clearOut(); clearSt();
+}
+
+$('swap-btn').addEventListener('click',()=>setDir(dir==='en->ar'?'ar->en':'en->ar'));
+$('pill-from').addEventListener('click',()=>setDir('en->ar'));
+$('pill-to').addEventListener('click',()=>setDir('ar->en'));
+
+/* ════════════════════════════════════════════════════════════
+   WALLET
+   ════════════════════════════════════════════════════════════ */
+async function addBase() {
+  await window.ethereum.request({
+    method:'wallet_addEthereumChain',
+    params:[{
+      chainId:'0x'+CHAIN.toString(16), chainName:'Base',
+      nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18},
+      rpcUrls:['https://mainnet.base.org'],
+      blockExplorerUrls:['https://basescan.org'],
+    }]
+  });
+}
+
+async function connectWallet() {
+  if(!window.ethereum){
+    setStatus('err','🦊','Please install <a href="https://metamask.io" target="_blank">MetaMask</a>.');
+    return;
+  }
+  try{
+    setStatus('info','⏳','Connecting wallet…');
+    provider=new ethers.BrowserProvider(window.ethereum);
+    await provider.send('eth_requestAccounts',[]);
+    const net=await provider.getNetwork();
+    if(Number(net.chainId)!==CHAIN){
+      setStatus('warn','🔄','Switching to Base network…');
+      try{ await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x'+CHAIN.toString(16)}]}); }
+      catch(e){ if(e.code===4902) await addBase(); }
+      provider=new ethers.BrowserProvider(window.ethereum);
+    }
+    signer=await provider.getSigner();
+    const addr=await signer.getAddress();
+    connected=true;
+    $('connect-btn').classList.add('ok');
+    $('wdot').classList.add('on');
+    $('wlabel').textContent=short(addr);
+    $('net-badge').textContent='🔵 Base Mainnet';
+    if(CONTRACT_ADDRESS&&CONTRACT_ADDRESS!=='YOUR_CONTRACT_ADDRESS_HERE'){
+      contract=new ethers.Contract(CONTRACT_ADDRESS,ABI,signer);
+      await loadTotal(); await loadHist(addr);
+    }
+    setStatus('ok','✅','Wallet connected! Ready to translate on Base.');
+    setTimeout(clearSt,3000);
+  }catch(e){
+    setStatus('err','❌','Connection failed: '+(e.message||e));
+  }
+}
+
+$('connect-btn').addEventListener('click',connectWallet);
+
+async function loadTotal(){
+  try{ $('st-tot').textContent=(await contract.getTotalTranslations()).toString(); }
+  catch{ $('st-tot').textContent='—'; }
+}
+async function loadHist(addr){
+  try{
+    const ids=await contract.getUserTranslationIds(addr);
+    const last=ids.slice(-8).reverse();
+    hist=[];
+    for(const id of last){
+      const r=await contract.getTranslation(id);
+      hist.push({src:r.sourceWord,tgt:r.translatedWord,d:r.direction,tx:null});
+    }
+    renderHist();
+  }catch(e){ console.log('hist',e.message); }
+}
+
+/* ════════════════════════════════════════════════════════════
+   MAIN TRANSLATE ACTION
+   ════════════════════════════════════════════════════════════ */
+async function doTranslate() {
+  const inp=$('inp').value.trim();
+  if(!inp){ setStatus('warn','⚠️','Please enter some text.'); return; }
+  if(inp.length>5000){ setStatus('err','❌','Max 5000 characters.'); return; }
+
+  const btn=$('tx-btn');
+  btn.disabled=true; btn.classList.add('busy');
+  btn.innerHTML='<span class="spin"></span>Translating with AI…';
+  clearOut();
+  setStatus('info','🤖','Claude AI is translating…');
+
+  let result;
+  try{
+    result = await claudeTranslate(inp, dir);
+    streamOut(result, dir==='en->ar');
+    setStatus('ok','✅','Translation complete!');
+    setTimeout(clearSt, 2500);
+  }catch(e){
+    console.error(e);
+    setStatus('err','❌','Translation failed: '+(e.message||'Please try again.'));
+    btn.disabled=false; btn.classList.remove('busy');
+    btn.innerHTML='✦ Translate &amp; Record on Base';
+    return;
+  }
+
+  // No contract — just show result
+  if(!connected||!contract||CONTRACT_ADDRESS==='YOUR_CONTRACT_ADDRESS_HERE'){
+    sess++; $('st-sess').textContent=sess;
+    pushHist({src:inp.slice(0,80)+(inp.length>80?'…':''),tgt:result.slice(0,100)+(result.length>100?'…':''),d:dir,tx:null});
+    setStatus('info','💡','Translated! Deploy contract to record on-chain.');
+    btn.disabled=false; btn.classList.remove('busy');
+    btn.innerHTML='✦ Translate &amp; Record on Base';
+    return;
+  }
+
+  // On-chain transaction
+  try{
+    btn.innerHTML='<span class="spin"></span>Recording on Base…';
+    setStatus('info','⏳','Submitting to Base blockchain…');
+    const tx=await contract.logTranslation(inp.slice(0,200),result.slice(0,200),dir);
+    setStatus('info','🔄',`Pending… <a class="tx-lnk" href="${SCAN}/tx/${tx.hash}" target="_blank">View ↗</a>`);
+    await tx.wait();
+    sess++; $('st-sess').textContent=sess;
+    await loadTotal();
+    pushHist({src:inp.slice(0,80)+(inp.length>80?'…':''),tgt:result.slice(0,100)+(result.length>100?'…':''),d:dir,tx:tx.hash});
+    setStatus('ok','✅',`Recorded on Base! <a class="tx-lnk" href="${SCAN}/tx/${tx.hash}" target="_blank">${tx.hash.slice(0,10)}…${tx.hash.slice(-6)} ↗</a>`);
+  }catch(e){
+    const m=e?.reason||e?.message||'Transaction failed';
+    setStatus('err','❌',m.length>120?m.slice(0,120)+'…':m);
+  }finally{
+    btn.disabled=false; btn.classList.remove('busy');
+    btn.innerHTML='✦ Translate &amp; Record on Base';
+  }
+}
+
+/* ── History ── */
+function pushHist(item){ hist.unshift(item); if(hist.length>20)hist.pop(); renderHist(); }
+function renderHist(){
+  if(!hist.length){
+    $('hist').innerHTML='<div style="color:var(--muted);font-size:.85rem;text-align:center;padding:24px">No translations yet</div>';
+    return;
+  }
+  $('hist').innerHTML=hist.map(h=>`
+    <div class="hi">
+      <span class="hi-dir">${h.d}</span>
+      <div class="hi-words">
+        <div class="hi-src">${escHtml(h.src)}</div>
+        <div class="hi-tgt">${escHtml(h.tgt)}</div>
+      </div>
+      ${h.tx?`<a class="hi-tx tx-lnk" href="${SCAN}/tx/${h.tx}" target="_blank">⛓ TX</a>`:'<span class="hi-tx" style="opacity:.35">Local</span>'}
+    </div>`).join('');
+}
+function escHtml(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── Contract link ── */
+const cl=$('c-lnk');
+cl.href=SCAN+'/address/'+CONTRACT_ADDRESS;
+cl.textContent=CONTRACT_ADDRESS==='YOUR_CONTRACT_ADDRESS_HERE'?'(deploy contract first)':short(CONTRACT_ADDRESS);
+
+/* ── Keyboard shortcut ── */
+$('inp').addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doTranslate();}
+});
+
+/* ── MetaMask events ── */
+if(window.ethereum){
+  window.ethereum.on('accountsChanged',()=>location.reload());
+  window.ethereum.on('chainChanged',()=>location.reload());
+}
+
+/* ── Auto-connect if already approved ── */
+(async()=>{
+  if(window.ethereum){
+    try{
+      const a=await window.ethereum.request({method:'eth_accounts'});
+      if(a.length) connectWallet();
+    }catch{}
+  }
+})();
+</script>
+</body>
+</html>
